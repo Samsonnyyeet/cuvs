@@ -788,6 +788,64 @@ cuvsError_t cuvsCagraSerializeToHnswlib(cuvsResources_t res,
 cuvsError_t cuvsCagraDeserialize(cuvsResources_t res, const char* filename, cuvsCagraIndex_t index);
 
 /**
+ * Serialize the CAGRA index to an in-memory byte buffer.
+ *
+ * The buffer is heap-allocated by this function and must be freed by the caller using `free()`.
+ *
+ * Experimental, both the API and the serialization format are subject to change.
+ *
+ * @code{.c}
+ * #include <cuvs/neighbors/cagra.h>
+ * #include <stdlib.h>
+ *
+ * // Create cuvsResources_t
+ * cuvsResources_t res;
+ * cuvsError_t res_create_status = cuvsResourcesCreate(&res);
+ *
+ * // create an index with `cuvsCagraBuild`, then serialize it to bytes
+ * uint8_t* buffer    = NULL;
+ * size_t buffer_size = 0;
+ * cuvsCagraSerializeToBytes(res, index, true, &buffer, &buffer_size);
+ * // use buffer[0..buffer_size-1], then release the allocation
+ * free(buffer);
+ * @endcode
+ *
+ * @param[in] res cuvsResources_t opaque C handle
+ * @param[in] index CAGRA index
+ * @param[in] include_dataset Whether or not to include the dataset in the serialized bytes.
+ * @param[out] buffer Pointer that will be set to the newly allocated byte buffer.
+ *                    The caller is responsible for freeing this with `free()`.
+ * @param[out] buffer_size Size of the allocated buffer in bytes.
+ * @return cuvsError_t
+ */
+cuvsError_t cuvsCagraSerializeToBytes(cuvsResources_t res,
+                                      cuvsCagraIndex_t index,
+                                      bool include_dataset,
+                                      uint8_t** buffer,
+                                      size_t* buffer_size);
+
+/**
+ * Deserialize a CAGRA index from an in-memory byte buffer.
+ *
+ * The `dtype` field of `index` must be set before calling this function so that the
+ * correct internal type is instantiated. The dtype is typically known from the context
+ * in which the index was originally built and serialized.
+ *
+ * Experimental, both the API and the serialization format are subject to change.
+ *
+ * @param[in] res cuvsResources_t opaque C handle
+ * @param[in] buffer Byte buffer containing the serialized index data
+ * @param[in] buffer_size Size of the buffer in bytes
+ * @param[inout] index cuvsCagraIndex_t CAGRA index to populate. Must be already created with
+ *                                      cuvsCagraIndexCreate and have its dtype set.
+ * @return cuvsError_t
+ */
+cuvsError_t cuvsCagraDeserializeFromBytes(cuvsResources_t res,
+                                          const uint8_t* buffer,
+                                          size_t buffer_size,
+                                          cuvsCagraIndex_t index);
+
+/**
  * Load index from a dataset and graph
  *
  * @param[in] res cuvsResources_t opaque C handle

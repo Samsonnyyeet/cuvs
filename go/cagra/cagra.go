@@ -173,3 +173,52 @@ func Deserialize(Resources cuvs.Resource, filename string, index *CagraIndex) er
 		index.index,
 	)))
 }
+
+// Serialize the index to an in-memory byte slice.
+//
+// # Arguments
+//
+// * `Resources` - Resources to use
+// * `index` - The CagraIndex to serialize
+// * `includeDataset` - Whether to include the dataset in the serialization
+func SerializeToBytes(Resources cuvs.Resource, index *CagraIndex, includeDataset bool) ([]byte, error) {
+	var buf *C.uint8_t
+	var bufSize C.size_t
+
+	err := cuvs.CheckCuvs(cuvs.CuvsError(C.cuvsCagraSerializeToBytes(
+		C.ulong(Resources.Resource),
+		index.index,
+		C.bool(includeDataset),
+		&buf,
+		&bufSize,
+	)))
+	if err != nil {
+		return nil, err
+	}
+	defer C.free(unsafe.Pointer(buf))
+	// this is a copy op, not sure if it is necessary
+	return C.GoBytes(unsafe.Pointer(buf), C.int(bufSize)), nil
+}
+
+// Load the index from an in-memory byte slice.
+//
+// The dtype field of the index must be set before calling this function so that
+// the correct internal type is instantiated. The dtype is typically known from
+// the context in which the index was originally built and serialized.
+//
+// # Arguments
+//
+// * `Resources` - Resources to use
+// * `data` - Byte slice containing the serialized index
+// * `index` - The CagraIndex to load into (dtype must be set beforehand)
+func DeserializeFromBytes(Resources cuvs.Resource, data []byte, index *CagraIndex) error {
+	buf := (*C.uint8_t)(C.CBytes(data))
+	defer C.free(unsafe.Pointer(buf))
+
+	return cuvs.CheckCuvs(cuvs.CuvsError(C.cuvsCagraDeserializeFromBytes(
+		C.ulong(Resources.Resource),
+		buf,
+		C.size_t(len(data)),
+		index.index,
+	)))
+}

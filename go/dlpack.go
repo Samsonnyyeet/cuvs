@@ -12,7 +12,7 @@ import (
 )
 
 type TensorNumberType interface {
-	int64 | uint32 | float32
+	int8 | uint8 | int64 | uint32 | float32
 }
 
 // ManagedTensor is a wrapper around a dlpack DLManagedTensor object.
@@ -375,6 +375,18 @@ func (t *Tensor[T]) Slice() ([][]T, error) {
 func getDLDataType[T TensorNumberType]() C.DLDataType {
 	var zero T
 	switch any(zero).(type) {
+	case int8:
+		return C.DLDataType{
+			bits:  C.uchar(8),
+			lanes: C.ushort(1),
+			code:  C.kDLInt,
+		}
+	case uint8:
+		return C.DLDataType{
+			bits:  C.uchar(8),
+			lanes: C.ushort(1),
+			code:  C.kDLUInt,
+		}
 	case int64:
 		return C.DLDataType{
 			bits:  C.uchar(64),

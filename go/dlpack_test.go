@@ -187,4 +187,60 @@ func TestDifferentDataTypes(t *testing.T) {
 			t.Errorf("incorrect shape for uint32 tensor: got %v, want [2 2]", shape)
 		}
 	})
+
+	// Test int8 tensor
+	t.Run("int8", func(t *testing.T) {
+		data := [][]int8{{1, 2, -3}, {4, -5, 6}}
+		tensor, err := cuvs.NewTensor(data)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer tensor.Close()
+
+		shape := tensor.Shape()
+		if !reflect.DeepEqual(shape, []int64{2, 3}) {
+			t.Errorf("incorrect shape for int8 tensor: got %v, want [2 3]", shape)
+		}
+
+		result, err := tensor.Slice()
+		if err != nil {
+			t.Fatal(err)
+		}
+		for i := range data {
+			for j := range data[i] {
+				if result[i][j] != data[i][j] {
+					t.Errorf("int8 data mismatch at [%d][%d]: got %d, want %d",
+						i, j, result[i][j], data[i][j])
+				}
+			}
+		}
+	})
+
+	// Test uint8 tensor
+	t.Run("uint8", func(t *testing.T) {
+		data := [][]uint8{{1, 2, 255}, {4, 128, 6}}
+		tensor, err := cuvs.NewTensor(data)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer tensor.Close()
+
+		shape := tensor.Shape()
+		if !reflect.DeepEqual(shape, []int64{2, 3}) {
+			t.Errorf("incorrect shape for uint8 tensor: got %v, want [2 3]", shape)
+		}
+
+		result, err := tensor.Slice()
+		if err != nil {
+			t.Fatal(err)
+		}
+		for i := range data {
+			for j := range data[i] {
+				if result[i][j] != data[i][j] {
+					t.Errorf("uint8 data mismatch at [%d][%d]: got %d, want %d",
+						i, j, result[i][j], data[i][j])
+				}
+			}
+		}
+	})
 }

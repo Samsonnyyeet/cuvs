@@ -63,7 +63,8 @@ func (index *IvfFlatIndex) Close() error {
 // * `queries` - A tensor in device memory to query for
 // * `neighbors` - Tensor in device memory that receives the indices of the nearest neighbors
 // * `distances` - Tensor in device memory that receives the distances of the nearest neighbors
-func SearchIndex[T any](Resources cuvs.Resource, params *SearchParams, index *IvfFlatIndex, queries *cuvs.Tensor[T], neighbors *cuvs.Tensor[int64], distances *cuvs.Tensor[T]) error {
+// sus
+func SearchIndex[T any](Resources cuvs.Resource, params *SearchParams, index *IvfFlatIndex, queries *cuvs.Tensor[T], neighbors *cuvs.Tensor[int64], distances *cuvs.Tensor[float32]) error {
 	if !index.trained {
 		return errors.New("index needs to be built before calling search")
 	}

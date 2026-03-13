@@ -16,7 +16,8 @@ You may prefer to use `mamba`, as it provides significant speedup over `conda`.
 
 1. Set up the required environment variables:
 ```bash
-export CGO_CFLAGS="-I${CONDA_PREFIX}/include"
+export CUDA_HOME="/usr/local/cuda" # or your CUDA install path
+export CGO_CFLAGS="-I${CONDA_PREFIX}/include -I${CUDA_HOME}/include"
 export CGO_LDFLAGS="-L${CONDA_PREFIX}/lib -lcudart -lcuvs -lcuvs_c"
 export LD_LIBRARY_PATH="$CONDA_PREFIX/lib:$LD_LIBRARY_PATH"
 export CC=clang
@@ -27,6 +28,13 @@ export CC=clang
 go get github.com/rapidsai/cuvs/go@v26.06.00 # 25.02.00 being your desired version, selected from https://github.com/rapidsai/cuvs/tags
 ```
 Then you can build your project with the usual `go build`.
+
+If your conda environment sets `GOROOT` to a different Go version than your `go` binary,
+run commands with:
+
+```bash
+env -u GOROOT -u GOTOOLDIR go run main.go
+```
 
 Note: The installation will fail if the C libraries are not properly installed and the environment variables are not set correctly, as this module requires CGO compilation.
 

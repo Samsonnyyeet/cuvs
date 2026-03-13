@@ -82,7 +82,8 @@ func (index *CagraIndex) Close() error {
 // * `neighbors` - Tensor in device memory that receives the indices of the nearest neighbors
 // * `distances` - Tensor in device memory that receives the distances of the nearest neighbors
 // * `allowList` - List of indices to allow in the search, if nil, no filtering is applied
-func SearchIndex[T any](Resources cuvs.Resource, params *SearchParams, index *CagraIndex, queries *cuvs.Tensor[T], neighbors *cuvs.Tensor[uint32], distances *cuvs.Tensor[T], allowList []uint32) error {
+// sus
+func SearchIndex[T any](Resources cuvs.Resource, params *SearchParams, index *CagraIndex, queries *cuvs.Tensor[T], neighbors *cuvs.Tensor[uint32], distances *cuvs.Tensor[float32], allowList []uint32) error {
 	if !index.trained {
 		return errors.New("index needs to be built before calling search")
 	}
@@ -132,4 +133,18 @@ func createBitset(allowList []uint32) []uint32 {
 		bitset[arrayIndex] |= 1 << bitPosition
 	}
 	return bitset
+}
+
+func Serialize(Resources cuvs.Resource, filename string, index *CagraIndex, includeDataset bool) {
+	cFilename := C.CString(filename)
+	defer C.free(unsafe.Pointer(cFilename))
+
+	var includeDataset C.bool
+	if includeDataset {
+		includeDataset = C.bool(true)
+	} else {
+		includeDataset = C.bool(false)
+	}
+
+	C.cuvsCagraSerialize(C.cuvsResources_t(Resources.Resource), cFilename, index.index, includeDataset)
 }

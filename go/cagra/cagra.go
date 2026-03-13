@@ -1,5 +1,6 @@
 package cagra
 
+// #include <stdlib.h>
 // #include <cuvs/neighbors/cagra.h>
 import "C"
 
@@ -135,16 +136,40 @@ func createBitset(allowList []uint32) []uint32 {
 	return bitset
 }
 
-func Serialize(Resources cuvs.Resource, filename string, index *CagraIndex, includeDataset bool) {
+// Save the index to file.
+//
+// # Arguments
+//
+// * `Resources` - Resources to use
+// * `filename` - The name of the file to save the index to
+// * `index` - The CagraIndex to serialize
+// * `includeDataset` - Whether to include the dataset in the serialization
+func Serialize(Resources cuvs.Resource, filename string, index *CagraIndex, includeDataset bool) error {
 	cFilename := C.CString(filename)
 	defer C.free(unsafe.Pointer(cFilename))
 
-	var includeDataset C.bool
-	if includeDataset {
-		includeDataset = C.bool(true)
-	} else {
-		includeDataset = C.bool(false)
-	}
+	return cuvs.CheckCuvs(cuvs.CuvsError(C.cuvsCagraSerialize(
+		C.ulong(Resources.Resource),
+		cFilename,
+		index.index,
+		C.bool(includeDataset),
+	)))
+}
 
-	C.cuvsCagraSerialize(C.cuvsResources_t(Resources.Resource), cFilename, index.index, includeDataset)
+// Load the index from file.
+//
+// # Arguments
+//
+// * `Resources` - Resources to use
+// * `filename` - The name of the file to load the index from
+// * `index` - The CagraIndex to load into
+func Deserialize(Resources cuvs.Resource, filename string, index *CagraIndex) error {
+	cFilename := C.CString(filename)
+	defer C.free(unsafe.Pointer(cFilename))
+
+	return cuvs.CheckCuvs(cuvs.CuvsError(C.cuvsCagraDeserialize(
+		C.ulong(Resources.Resource),
+		cFilename,
+		index.index,
+	)))
 }

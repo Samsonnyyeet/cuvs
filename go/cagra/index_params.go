@@ -109,6 +109,18 @@ func CreateIndexParams() (*IndexParams, error) {
 	return IndexParams, nil
 }
 
+// Distance Type to use for building the index
+func (p *IndexParams) SetMetric(metric cuvs.Distance) (*IndexParams, error) {
+	CMetric, exists := cuvs.CDistances[metric]
+
+	if !exists {
+		return nil, errors.New("cuvs: invalid distance metric")
+	}
+	p.params.metric = C.cuvsDistanceType(CMetric)
+
+	return p, nil
+}
+
 // Degree of input graph for pruning
 func (p *IndexParams) SetIntermediateGraphDegree(intermediate_graph_degree uintptr) (*IndexParams, error) {
 	p.params.intermediate_graph_degree = C.size_t(intermediate_graph_degree)

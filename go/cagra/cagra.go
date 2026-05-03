@@ -167,11 +167,16 @@ func Deserialize(Resources cuvs.Resource, filename string, index *CagraIndex) er
 	cFilename := C.CString(filename)
 	defer C.free(unsafe.Pointer(cFilename))
 
-	return cuvs.CheckCuvs(cuvs.CuvsError(C.cuvsCagraDeserialize(
+	err := cuvs.CheckCuvs(cuvs.CuvsError(C.cuvsCagraDeserialize(
 		C.ulong(Resources.Resource),
 		cFilename,
 		index.index,
 	)))
+	if err != nil {
+		return err
+	}
+	index.trained = true
+	return nil
 }
 
 // Serialize the index to an in-memory byte slice.
@@ -212,13 +217,22 @@ func SerializeToBytes(Resources cuvs.Resource, index *CagraIndex, includeDataset
 // * `data` - Byte slice containing the serialized index
 // * `index` - The CagraIndex to load into (dtype must be set beforehand)
 func DeserializeFromBytes(Resources cuvs.Resource, data []byte, index *CagraIndex) error {
+	index.index.dtype.code = C.uchar(1)
+	index.index.dtype.bits = C.uchar(8)
+	index.index.dtype.lanes = C.ushort(1)
+
 	buf := (*C.uint8_t)(C.CBytes(data))
 	defer C.free(unsafe.Pointer(buf))
 
-	return cuvs.CheckCuvs(cuvs.CuvsError(C.cuvsCagraDeserializeFromBytes(
+	err := cuvs.CheckCuvs(cuvs.CuvsError(C.cuvsCagraDeserializeFromBytes(
 		C.ulong(Resources.Resource),
 		buf,
 		C.size_t(len(data)),
 		index.index,
 	)))
+	if err != nil {
+		return err
+	}
+	index.trained = true
+	return nil
 }

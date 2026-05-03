@@ -213,6 +213,64 @@ cuvsError_t cuvsBruteForceDeserialize(cuvsResources_t res,
                                       cuvsBruteForceIndex_t index);
 
 /**
+ * Serialize a BRUTEFORCE index to an in-memory byte buffer.
+ *
+ * The serialization format can be subject to changes, therefore loading
+ * an index saved with a previous version of cuvs is not guaranteed
+ * to work.
+ *
+ * @code{.c}
+ * #include <cuvs/neighbors/brute_force.h>
+ * #include <stdlib.h>
+ *
+ * // Create cuvsResources_t
+ * cuvsResources_t res;
+ * cuvsError_t res_create_status = cuvsResourcesCreate(&res);
+ *
+ * // create an index with `cuvsBruteForceBuild`, then serialize it to bytes
+ * uint8_t* buffer    = NULL;
+ * size_t buffer_size = 0;
+ * cuvsBruteForceSerializeToBytes(res, index, &buffer, &buffer_size);
+ * // use buffer[0..buffer_size-1], then release the allocation
+ * free(buffer);
+ * @endcode
+ *
+ * @param[in] res cuvsResources_t opaque C handle
+ * @param[in] index BRUTEFORCE index
+ * @param[out] buffer Pointer that will be set to the newly allocated byte buffer.
+ *                    The caller is responsible for freeing this with `free()`.
+ * @param[out] buffer_size Size of the allocated buffer in bytes.
+ * @return cuvsError_t
+ */
+cuvsError_t cuvsBruteForceSerializeToBytes(cuvsResources_t res,
+                                           cuvsBruteForceIndex_t index,
+                                           uint8_t** buffer,
+                                           size_t* buffer_size);
+
+/**
+ * Deserialize a BRUTEFORCE index from an in-memory byte buffer.
+ *
+ * The `dtype` field of `index` must be set before calling this function so that
+ * the correct internal type is instantiated.
+ *
+ * The serialization format can be subject to changes, therefore loading
+ * an index saved with a previous version of cuvs is not guaranteed
+ * to work.
+ *
+ * @param[in] res cuvsResources_t opaque C handle
+ * @param[in] buffer Byte buffer containing the serialized index data
+ * @param[in] buffer_size Size of the buffer in bytes
+ * @param[inout] index cuvsBruteForceIndex_t BRUTEFORCE index to populate. Must be
+ *                     already created with cuvsBruteForceIndexCreate and have its
+ *                     dtype set.
+ * @return cuvsError_t
+ */
+cuvsError_t cuvsBruteForceDeserializeFromBytes(cuvsResources_t res,
+                                               const uint8_t* buffer,
+                                               size_t buffer_size,
+                                               cuvsBruteForceIndex_t index);
+
+/**
  * @}
  */
 #ifdef __cplusplus

@@ -5,8 +5,10 @@
  */
 
 #include <cstdint>
+#include <cstring>
 #include <dlpack/dlpack.h>
 #include <fstream>
+#include <sstream>
 
 #include <raft/core/error.hpp>
 #include <raft/core/mdspan_types.hpp>
@@ -112,6 +114,36 @@ void* _deserialize(cuvsResources_t res, const char* filename)
   auto res_ptr = reinterpret_cast<raft::resources*>(res);
   auto index   = new cuvs::neighbors::brute_force::index<T, DistT>(*res_ptr);
   cuvs::neighbors::brute_force::deserialize(*res_ptr, std::string(filename), index);
+  return index;
+}
+
+template <typename T, typename DistT = float>
+void _serialize_to_bytes(cuvsResources_t res,
+                         cuvsBruteForceIndex_t index,
+                         uint8_t** buffer,
+                         size_t* buffer_size)
+{
+  auto res_ptr   = reinterpret_cast<raft::resources*>(res);
+  auto index_ptr = reinterpret_cast<cuvs::neighbors::brute_force::index<T, DistT>*>(index->addr);
+  std::ostringstream os;
+  cuvs::neighbors::brute_force::serialize(*res_ptr, os, *index_ptr);
+  const std::string& data = os.str();
+  *buffer_size            = data.size();
+  *buffer                 = static_cast<uint8_t*>(malloc(*buffer_size));
+  if (*buffer == nullptr) {
+    RAFT_FAIL("Failed to allocate serialization buffer of size %zu", *buffer_size);
+  }
+  std::memcpy(*buffer, data.data(), *buffer_size);
+}
+
+template <typename T, typename DistT = float>
+void* _deserialize_from_bytes(cuvsResources_t res, const uint8_t* buffer, size_t buffer_size)
+{
+  auto res_ptr = reinterpret_cast<raft::resources*>(res);
+  auto index   = new cuvs::neighbors::brute_force::index<T, DistT>(*res_ptr);
+  std::string data(reinterpret_cast<const char*>(buffer), buffer_size);
+  std::istringstream is(data);
+  cuvs::neighbors::brute_force::deserialize(*res_ptr, is, index);
   return index;
 }
 }  // namespace
@@ -264,6 +296,40 @@ extern "C" cuvsError_t cuvsBruteForceSerialize(cuvsResources_t res,
       _serialize<float>(res, filename, *index);
     } else if (index->dtype.code == kDLFloat && index->dtype.bits == 16) {
       _serialize<half>(res, filename, *index);
+    } else {
+      RAFT_FAIL("Unsupported index dtype: %d and bits: %d", index->dtype.code, index->dtype.bits);
+    }
+  });
+}
+
+extern "C" cuvsError_t cuvsBruteForceSerializeToBytes(cuvsResources_t res,
+                                                      cuvsBruteForceIndex_t index,
+                                                      uint8_t** buffer,
+                                                      size_t* buffer_size)
+{
+  return cuvs::core::translate_exceptions([=] {
+    if (index->dtype.code == kDLFloat && index->dtype.bits == 32) {
+      _serialize_to_bytes<float>(res, index, buffer, buffer_size);
+    } else if (index->dtype.code == kDLFloat && index->dtype.bits == 16) {
+      _serialize_to_bytes<half>(res, index, buffer, buffer_size);
+    } else {
+      RAFT_FAIL("Unsupported index dtype: %d and bits: %d", index->dtype.code, index->dtype.bits);
+    }
+  });
+}
+
+extern "C" cuvsError_t cuvsBruteForceDeserializeFromBytes(cuvsResources_t res,
+                                                          const uint8_t* buffer,
+                                                          size_t buffer_size,
+                                                          cuvsBruteForceIndex_t index)
+{
+  return cuvs::core::translate_exceptions([=] {
+    if (index->dtype.code == kDLFloat && index->dtype.bits == 32) {
+      index->addr =
+        reinterpret_cast<uintptr_t>(_deserialize_from_bytes<float>(res, buffer, buffer_size));
+    } else if (index->dtype.code == kDLFloat && index->dtype.bits == 16) {
+      index->addr =
+        reinterpret_cast<uintptr_t>(_deserialize_from_bytes<half>(res, buffer, buffer_size));
     } else {
       RAFT_FAIL("Unsupported index dtype: %d and bits: %d", index->dtype.code, index->dtype.bits);
     }
